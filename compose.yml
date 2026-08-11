@@ -101,7 +101,7 @@ services:
 networks:
   media:
     external: true
-    # Change this to the existing network used by your webhook senders.
+    # Use the same Docker network as the rest of your media stack.
     name: media
 
 volumes:
