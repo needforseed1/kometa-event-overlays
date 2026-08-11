@@ -51,15 +51,6 @@ def epoch(value: datetime) -> int:
     return int(value.timestamp())
 
 
-def parse_epoch(value: str | None) -> datetime | None:
-    if not value:
-        return None
-    try:
-        return datetime.fromtimestamp(int(value), tz=timezone.utc)
-    except (TypeError, ValueError, OSError):
-        return None
-
-
 def parse_date(value: str | None) -> date | None:
     if not value:
         return None
@@ -78,7 +69,6 @@ def normalize_imdb_id(value: str | None) -> str | None:
 
 @dataclass(frozen=True)
 class Policy:
-    new_days: int = 7
     recent_days: int = 30
     medium_days: int = 180
     recent_hours: int = 24
@@ -94,7 +84,6 @@ class Episode:
     show_rating_key: int
     season_number: int
     episode_number: int
-    added_at: datetime | None
     aired_at: date | None
     audience_rating: float | None
     imdb_id: str | None
@@ -133,7 +122,6 @@ class Config:
             poll_hours=float(os.environ.get("IMDB_SYNC_POLL_HOURS", "6")),
             dry_run=env_bool("IMDB_SYNC_DRY_RUN", True),
             policy=Policy(
-                new_days=int(os.environ.get("IMDB_SYNC_NEW_DAYS", "7")),
                 recent_days=int(os.environ.get("IMDB_SYNC_RECENT_DAYS", "30")),
                 medium_days=int(os.environ.get("IMDB_SYNC_MEDIUM_DAYS", "180")),
                 recent_hours=int(os.environ.get("IMDB_SYNC_RECENT_HOURS", "24")),
@@ -267,6 +255,15 @@ class State:
             ),
         )
         row = self.get_episode(item.rating_key)
+        assert row is not None
+        return row
+
+    def mark_new(self, rating_key: int) -> sqlite3.Row:
+        self.connection.execute(
+            "UPDATE episode_state SET status = 'new' WHERE rating_key = ?",
+            (rating_key,),
+        )
+        row = self.get_episode(rating_key)
         assert row is not None
         return row
 
@@ -505,7 +502,6 @@ class PlexClient:
                         show_rating_key=show_rating_key,
                         season_number=season_number,
                         episode_number=episode_number,
-                        added_at=parse_epoch(node.attrib.get("addedAt")),
                         aired_at=parse_date(node.attrib.get("originallyAvailableAt")),
                         audience_rating=audience_rating,
                         imdb_id=imdb_id,
@@ -747,7 +743,6 @@ def due_reason(
     now: datetime,
     policy: Policy,
     full: bool,
-    inventory_baseline: datetime | None,
 ) -> str | None:
     if full:
         return "full"
@@ -757,22 +752,17 @@ def due_reason(
         if since_checked is None or since_checked >= policy.missing_retry_hours:
             return f"retry-{row['status']}"
 
+    # A new item found after the initial inventory gets one immediate lookup.
+    # Its ongoing refresh interval is based only on air date.
+    if row["status"] == "new" and since_checked is None:
+        return "new-item"
+
     today = now.date()
-    added_age = (now - item.added_at).total_seconds() / 86400 if item.added_at else None
     aired_age = (today - item.aired_at).days if item.aired_at else None
-    # Plex's addedAt is only trusted after the first inventory. A Plex rebuild
-    # can make an entire old library look newly downloaded; the persistent
-    # baseline prevents that bootstrap flood while still catching later adds.
-    added_after_baseline = (
-        inventory_baseline is not None
-        and item.added_at is not None
-        and item.added_at >= inventory_baseline
-    )
-    is_new = added_after_baseline and added_age is not None and 0 <= added_age <= policy.new_days
     is_recent = aired_age is not None and 0 <= aired_age <= policy.recent_days
-    if is_new or is_recent:
+    if is_recent:
         if since_checked is None or since_checked >= policy.recent_hours:
-            return "new-download" if is_new else "recent-airdate"
+            return "recent-airdate"
         return None
 
     if aired_age is not None and 0 <= aired_age <= policy.medium_days:
@@ -853,24 +843,31 @@ def run_sync(
         if missing_libraries:
             raise ValueError(f"Plex show libraries not found: {', '.join(missing_libraries)}")
 
-        baseline_value = state.metadata_get("inventory_baseline_epoch")
-        inventory_baseline = (
-            datetime.fromtimestamp(int(baseline_value), tz=timezone.utc)
-            if baseline_value is not None
-            else None
+        inventory_initialized = (
+            state.metadata_get("inventory_initialized") == "1"
+            or state.metadata_get("inventory_baseline_epoch") is not None
         )
         due: list[Episode] = []
         for library in config.libraries:
             items = plex.episodes(sections[library], library)
             metrics["episodes_seen"] += len(items)
             for item in items:
+                was_known = state.get_episode(item.rating_key) is not None
                 row = state.record_seen(item, now_epoch)
-                reason = due_reason(item, row, now, config.policy, full, inventory_baseline)
+                if inventory_initialized and not was_known:
+                    row = state.mark_new(item.rating_key)
+                reason = due_reason(
+                    item,
+                    row,
+                    now,
+                    config.policy,
+                    full,
+                )
                 if reason:
                     due.append(item)
                     reason_counts[reason] += 1
-        if inventory_baseline is None:
-            state.metadata_set("inventory_baseline_epoch", str(now_epoch))
+        if not inventory_initialized:
+            state.metadata_set("inventory_initialized", "1")
         state.commit()
         metrics["episodes_due"] = len(due)
 

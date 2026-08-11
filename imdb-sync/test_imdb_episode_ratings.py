@@ -23,14 +23,13 @@ from imdb_episode_ratings import (
 NOW = datetime(2026, 8, 11, 10, 0, tzinfo=timezone.utc)
 
 
-def episode(*, added_days: int = 100, aired_days: int = 100, rating_key: int = 1) -> Episode:
+def episode(*, aired_days: int = 100, rating_key: int = 1) -> Episode:
     return Episode(
         rating_key=rating_key,
         library="TV Shows",
         show_rating_key=10,
         season_number=1,
         episode_number=2,
-        added_at=NOW - timedelta(days=added_days),
         aired_at=date(2026, 8, 11) - timedelta(days=aired_days),
         audience_rating=8.1,
         imdb_id="tt1234567",
@@ -60,43 +59,55 @@ class DuePolicyTests(unittest.TestCase):
             row = self.state.get_episode(item.rating_key)
         return row
 
-    def test_new_download_is_due_immediately(self) -> None:
-        item = episode(added_days=1, aired_days=1000)
-        baseline = NOW - timedelta(days=2)
-        self.assertEqual("new-download", due_reason(item, self.row(item), NOW, self.policy, False, baseline))
+    def test_newly_discovered_episode_is_due_immediately(self) -> None:
+        item = episode(aired_days=1000)
+        self.row(item)
+        row = self.state.mark_new(item.rating_key)
+        self.assertEqual(
+            "new-item",
+            due_reason(item, row, NOW, self.policy, False),
+        )
 
     def test_recent_airdate_is_due_immediately(self) -> None:
-        item = episode(added_days=100, aired_days=3)
-        self.assertEqual("recent-airdate", due_reason(item, self.row(item), NOW, self.policy, False, NOW))
+        item = episode(aired_days=3)
+        self.assertEqual(
+            "recent-airdate",
+            due_reason(item, self.row(item), NOW, self.policy, False),
+        )
 
     def test_recent_item_waits_until_daily_interval(self) -> None:
-        item = episode(added_days=1, aired_days=1)
+        item = episode(aired_days=1)
         row = self.row(item, status="ok", checked_hours=5)
-        self.assertIsNone(due_reason(item, row, NOW, self.policy, False, NOW - timedelta(days=2)))
+        self.assertIsNone(due_reason(item, row, NOW, self.policy, False))
+
+    def test_old_episode_uses_airdate_after_initial_lookup(self) -> None:
+        item = episode(aired_days=1000)
+        row = self.row(item, status="ok", checked_hours=24)
+        self.assertIsNone(due_reason(item, row, NOW, self.policy, False))
 
     def test_missing_rating_retries_after_six_hours(self) -> None:
-        item = episode(added_days=100, aired_days=100)
+        item = episode(aired_days=100)
         row = self.row(item, status="missing", checked_hours=7)
-        self.assertEqual("retry-missing", due_reason(item, row, NOW, self.policy, False, NOW))
+        self.assertEqual("retry-missing", due_reason(item, row, NOW, self.policy, False))
 
     def test_bootstrap_defers_old_items_for_one_interval(self) -> None:
-        item = episode(added_days=500, aired_days=500)
-        self.assertIsNone(due_reason(item, self.row(item), NOW, self.policy, False, NOW))
+        item = episode(aired_days=500)
+        self.assertIsNone(due_reason(item, self.row(item), NOW, self.policy, False))
         row = self.state.get_episode(item.rating_key)
         self.state.connection.execute(
             "UPDATE episode_state SET first_seen = ? WHERE rating_key = ?",
             (int((NOW - timedelta(days=31)).timestamp()), item.rating_key),
         )
         row = self.state.get_episode(item.rating_key)
-        self.assertEqual("monthly", due_reason(item, row, NOW, self.policy, False, NOW))
+        self.assertEqual("monthly", due_reason(item, row, NOW, self.policy, False))
 
     def test_full_always_runs(self) -> None:
         item = episode()
-        self.assertEqual("full", due_reason(item, self.row(item), NOW, self.policy, True, None))
+        self.assertEqual("full", due_reason(item, self.row(item), NOW, self.policy, True))
 
-    def test_first_inventory_ignores_old_items_with_recent_added_at(self) -> None:
-        item = episode(added_days=1, aired_days=1000)
-        self.assertIsNone(due_reason(item, self.row(item), NOW, self.policy, False, None))
+    def test_first_inventory_defers_old_items(self) -> None:
+        item = episode(aired_days=1000)
+        self.assertIsNone(due_reason(item, self.row(item), NOW, self.policy, False))
 
     def test_original_rating_and_lock_are_captured_for_rollback(self) -> None:
         item = episode()

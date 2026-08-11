@@ -67,13 +67,13 @@ The scheduler wakes every six hours, but it only checks episodes that are due:
 | Episode state or age | Default IMDb refresh interval |
 |---|---:|
 | Missing, unmapped, or previous error | 6 hours |
-| Downloaded within 7 days, or aired within 30 days | 24 hours |
+| Aired within 30 days | 24 hours |
 | Aired 31–180 days ago | 7 days |
 | Aired more than 180 days ago, or air date unknown | 30 days |
 
-A Sonarr import triggers an extra cycle, so a newly downloaded episode gets its
-first rating without waiting up to six hours. The six-hour wake-up is therefore
-not a six-hour refresh of the whole library.
+A newly discovered episode gets one immediate lookup. After that, only its air
+date determines the refresh tier; Plex's added date is not used. A Sonarr import
+triggers an extra cycle, so the first lookup does not wait up to six hours.
 
 On first startup, old episodes are inventoried but not immediately swept. They
 become eligible after their normal weekly or monthly interval, avoiding a large
@@ -106,21 +106,30 @@ need to be a container on the shared webhook network.
 
 ## Quick start
 
-1. Copy and edit the environment file:
+The images are built locally from this repository.
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/NeedForSeed1/kometa-event-overlays.git
+   cd kometa-event-overlays
+   ```
+
+2. Copy and edit the environment file:
 
    ```bash
    cp .env.example .env
    $EDITOR .env
    ```
 
-2. Edit `config/config.yml` so every library key exactly matches Plex. The TV
+3. Edit `config/config.yml` so every library key exactly matches Plex. The TV
    library names must also match `TV_LIBRARIES`; movie names must match
    `MOVIE_LIBRARIES`.
 
-3. Put these containers on the same Docker network as the rest of your media
+4. Put these containers on the same Docker network as the rest of your media
    stack. Set `networks.media.name` in `compose.yml` to that network's name.
 
-4. Build and start in dry-run mode:
+5. Build and start in dry-run mode:
 
    ```bash
    docker compose build
@@ -128,7 +137,7 @@ need to be a container on the shared webhook network.
    docker compose ps
    ```
 
-5. Retrieve the generated webhook token:
+6. Retrieve the generated webhook token:
 
    ```bash
    docker compose exec kometa-imdb-sync cat /data/webhook-token
@@ -137,9 +146,9 @@ need to be a container on the shared webhook network.
    Treat this token like a password. Add it to webhook headers, but never post
    it in an issue or log excerpt.
 
-6. Add the webhooks manually using [docs/INSTALLATION.md](docs/INSTALLATION.md).
+7. Add the webhooks manually using [docs/INSTALLATION.md](docs/INSTALLATION.md).
 
-7. Review dry-run logs and status files. Activate writes only when the detected
+8. Review dry-run logs and status files. Activate writes only when the detected
    libraries and target counts are correct:
 
    ```bash

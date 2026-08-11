@@ -2,7 +2,15 @@
 
 ## 1. Configure the project
 
-Copy `.env.example` to `.env` and provide:
+Clone the repository and enter it:
+
+```bash
+git clone https://github.com/NeedForSeed1/kometa-event-overlays.git
+cd kometa-event-overlays
+```
+
+The Docker images are built locally from this checkout. Copy `.env.example` to
+`.env` and provide:
 
 - `PLEX_URL`
 - `PLEX_TOKEN`

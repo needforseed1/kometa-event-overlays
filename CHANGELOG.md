@@ -5,6 +5,12 @@ All notable changes to this project will be documented here.
 The project uses semantic versioning once the public interfaces stabilize.
 Until then, alpha releases may contain breaking configuration changes.
 
+## Unreleased
+
+- Base recurring episode-rating refresh tiers only on air date.
+- Keep one immediate first lookup for episodes discovered after initial setup.
+- Add clone-first installation instructions.
+
 ## 0.1.0-alpha.1 - 2026-08-11
 
 - Add scheduled IMDb episode rating refresh tiers.
