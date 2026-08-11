@@ -9,8 +9,8 @@ git clone https://github.com/NeedForSeed1/kometa-event-overlays.git
 cd kometa-event-overlays
 ```
 
-The Docker images are built locally from this checkout. Copy `.env.example` to
-`.env` and provide:
+The Compose file pulls version-pinned public images from GHCR. No registry login
+or local image build is required. Copy `.env.example` to `.env` and provide:
 
 - `PLEX_URL`
 - `PLEX_TOKEN`
@@ -42,7 +42,7 @@ the listener directly to the internet.
 Keep `IMDB_SYNC_DRY_RUN=true` initially:
 
 ```bash
-docker compose build
+docker compose pull
 docker compose up -d
 docker compose ps
 ```

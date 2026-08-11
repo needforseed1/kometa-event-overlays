@@ -11,7 +11,7 @@ python3 -m unittest discover -s imdb-sync -p 'test_*.py'
 python3 -m unittest discover -s scoped-overlay -p 'test_*.py'
 python3 -m py_compile imdb-sync/*.py scoped-overlay/*.py
 docker compose config --quiet
-docker compose build
+docker compose -f compose.yml -f compose.build.yml build
 ```
 
 Use `.env.example` values or disposable test credentials. Never run public CI
