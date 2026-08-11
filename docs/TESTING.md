@@ -7,6 +7,7 @@ python3 -m unittest discover -s imdb-sync -p 'test_*.py'
 python3 -m unittest discover -s scoped-overlay -p 'test_*.py'
 python3 -m py_compile imdb-sync/*.py scoped-overlay/*.py
 docker compose config --quiet
+docker compose -f compose.yml -f compose.build.yml build
 ```
 
 Building `kometa-incremental` is also a compatibility test because the source

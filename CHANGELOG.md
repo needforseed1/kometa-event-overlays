@@ -7,9 +7,14 @@ Until then, alpha releases may contain breaking configuration changes.
 
 ## Unreleased
 
+## 0.1.0-alpha.2 - 2026-08-11
+
 - Base recurring episode-rating refresh tiers only on air date.
 - Keep one immediate first lookup for episodes discovered after initial setup.
-- Add clone-first installation instructions.
+- Publish multi-architecture listener and scoped-Kometa images on GHCR.
+- Make the standard Compose installation pull version-pinned release images.
+- Retain reproducible local image builds through `compose.build.yml`.
+- Update GitHub Actions to the current major action releases.
 
 ## 0.1.0-alpha.1 - 2026-08-11
 

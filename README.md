@@ -104,9 +104,18 @@ Tautulli applications.
 The Plex server itself may be reachable by any valid `PLEX_URL`; it does not
 need to be a container on the shared webhook network.
 
-## Quick start
+## Published images
 
-The images are built locally from this repository.
+Each release publishes Linux AMD64 and ARM64 images to GitHub Container
+Registry:
+
+- `ghcr.io/needforseed1/kometa-event-sync:0.1.0-alpha.2`
+- `ghcr.io/needforseed1/kometa-event-overlays:0.1.0-alpha.2`
+
+The Compose file pins explicit release tags rather than `latest`. Public images
+can be pulled without a GitHub login.
+
+## Quick start
 
 1. Clone the repository:
 
@@ -129,10 +138,10 @@ The images are built locally from this repository.
 4. Put these containers on the same Docker network as the rest of your media
    stack. Set `networks.media.name` in `compose.yml` to that network's name.
 
-5. Build and start in dry-run mode:
+5. Pull and start in dry-run mode:
 
    ```bash
-   docker compose build
+   docker compose pull
    docker compose up -d
    docker compose ps
    ```
@@ -170,11 +179,18 @@ the worker.
 
 ### `kometa-incremental`
 
-Builds from `lscr.io/linuxserver/kometa:2.4.6`, applies the scoped-overlay patch,
-and watches for scope generations. It invokes Kometa with `--overlays-only` and
-records completed generations in the `incremental-config` volume.
+The published image is built from `lscr.io/linuxserver/kometa:2.4.6` with the
+scoped-overlay patch. It watches for scope generations, invokes Kometa with
+`--overlays-only`, and records completed generations in the
+`incremental-config` volume.
 
 The regular Kometa container is intentionally outside this Compose project.
+
+Contributors can rebuild both images locally with:
+
+```bash
+docker compose -f compose.yml -f compose.build.yml build
+```
 
 ## Useful commands
 

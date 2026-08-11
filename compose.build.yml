@@ -1,0 +1,8 @@
+services:
+  kometa-imdb-sync:
+    build:
+      context: ./imdb-sync
+
+  kometa-incremental:
+    build:
+      context: ./scoped-overlay

@@ -34,8 +34,8 @@ Source: <https://github.com/Kometa-Team/Kometa>
 ## LinuxServer.io Kometa image
 
 The derived overlay image currently starts from
-`lscr.io/linuxserver/kometa:2.4.6`. This project does not redistribute that
-image; users build locally from the published base image.
+`lscr.io/linuxserver/kometa:2.4.6`. The published scoped-overlay image contains
+that base image with this project's compatibility patch and worker added.
 
 Documentation: <https://docs.linuxserver.io/images/docker-kometa/>
 
