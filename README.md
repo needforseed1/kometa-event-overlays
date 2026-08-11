@@ -97,14 +97,25 @@ need to be a container on the shared webhook network.
    library names must also match `TV_LIBRARIES`; movie names must match
    `MOVIE_LIBRARIES`.
 
-3. Ensure `MEDIA_NETWORK` names an existing Docker network shared by this
-   project and the containers that will send webhooks:
+3. At the bottom of `compose.yml`, set `networks.media.name` to an existing
+   Docker network shared with the containers that will send webhooks:
+
+   ```yaml
+   networks:
+     media:
+       external: true
+       name: media
+   ```
+
+   Replace the final `media` with the actual network name. If you need to
+   create that network first, run:
 
    ```bash
    docker network create media
    ```
 
-   Do not run that command if the chosen network already exists.
+   Do not run that command if the chosen network already exists. Also attach
+   Sonarr, Radarr, and Tautulli to it in their own Compose files.
 
 4. Build and start in dry-run mode:
 

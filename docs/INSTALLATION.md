@@ -9,7 +9,6 @@ Copy `.env.example` to `.env` and provide:
 - `TMDB_API_KEY`
 - comma-separated `TV_LIBRARIES`
 - comma-separated `MOVIE_LIBRARIES`, or an empty value
-- the existing shared `MEDIA_NETWORK`
 
 Edit `config/config.yml`. Every library key must exactly match both Plex and the
 corresponding environment list. Copy the supplied TV or movie block when more
@@ -21,8 +20,19 @@ webhooks and never calls Arr APIs.
 ## 2. Networking
 
 The safest setup puts this project and each webhook sender on one user-defined
-Docker network. With `MEDIA_NETWORK=media`, the senders can use the hostname
-`kometa-imdb-sync`.
+Docker network. Set the external network name directly at the bottom of
+`compose.yml`:
+
+```yaml
+networks:
+  media:
+    external: true
+    name: media
+```
+
+Replace the final `media` with your existing Docker network name. Attach
+Sonarr, Radarr, and Tautulli to the same network in their own Compose files.
+They can then use the hostname `kometa-imdb-sync`.
 
 Plex does not have to share this network if `PLEX_URL` is otherwise reachable.
 

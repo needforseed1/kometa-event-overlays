@@ -26,7 +26,8 @@ queue into a public issue without checking it for private paths.
 
 ## Webhook test fails
 
-- Confirm sender and listener share `MEDIA_NETWORK`.
+- Confirm the sender and listener share the external network named at the
+  bottom of `compose.yml`.
 - Resolve `kometa-imdb-sync` from the sender container.
 - Confirm port 8788 is reachable.
 - Confirm the `X-Kometa-Token` header matches `/data/webhook-token`.

@@ -101,7 +101,8 @@ services:
 networks:
   media:
     external: true
-    name: ${MEDIA_NETWORK:?Set MEDIA_NETWORK in .env}
+    # Change this to the existing network used by your webhook senders.
+    name: media
 
 volumes:
   imdb-sync-data:
