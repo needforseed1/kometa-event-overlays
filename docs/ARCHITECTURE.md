@@ -20,13 +20,17 @@ for poster work while Plex still reports the previous file.
 
 Episode audience ratings are refreshed according to age and state:
 
-- newly downloaded or recently aired episodes: daily
-- missing or unmapped ratings: retry every six hours
-- medium-age episodes: weekly
-- old episodes: monthly
+- missing, unmapped, or failed episodes: every six hours
+- downloaded within 7 days, or aired within 30 days: every 24 hours
+- aired 31–180 days ago: every 7 days
+- aired more than 180 days ago, or with no air date: every 30 days
 
-The scheduler wakes every six hours. Sonarr events trigger an additional rating
-cycle before overlay work so new episodes do not wait for the scheduler.
+The scheduler wakes every six hours to select due episodes; it does not refresh
+the whole library every six hours. A Sonarr import triggers an additional cycle
+so a newly downloaded episode does not wait for the scheduler.
+
+On first startup, old weekly and monthly items are inventoried and deferred for
+one normal interval instead of causing a full-library bootstrap sweep.
 
 ## Single scope publication
 

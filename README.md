@@ -60,6 +60,26 @@ Sonarr / Radarr / Tautulli
 - Dry-run default and metadata rollback snapshots.
 - No published webhook port by default.
 
+## Episode rating refresh schedule
+
+The scheduler wakes every six hours, but it only checks episodes that are due:
+
+| Episode state or age | Default IMDb refresh interval |
+|---|---:|
+| Missing, unmapped, or previous error | 6 hours |
+| Downloaded within 7 days, or aired within 30 days | 24 hours |
+| Aired 31–180 days ago | 7 days |
+| Aired more than 180 days ago, or air date unknown | 30 days |
+
+A Sonarr import triggers an extra cycle, so a newly downloaded episode gets its
+first rating without waiting up to six hours. The six-hour wake-up is therefore
+not a six-hour refresh of the whole library.
+
+On first startup, old episodes are inventoried but not immediately swept. They
+become eligible after their normal weekly or monthly interval, avoiding a large
+bootstrap workload. The age thresholds and intervals can be changed with the
+`IMDB_SYNC_*` policy variables in `compose.yml`.
+
 ## What it does not do
 
 - It does not discover or configure Plex, Radarr, Sonarr, or Tautulli.
