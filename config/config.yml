@@ -1,0 +1,54 @@
+# Library names must exactly match TV_LIBRARIES and MOVIE_LIBRARIES in .env.
+libraries:
+  TV Shows:
+    reapply_overlays: false
+    schedule_overlays: daily
+    overlay_files:
+      - default: resolution
+        template_variables:
+          builder_level: episode
+      - default: video_format
+        template_variables:
+          builder_level: episode
+      - default: ratings
+        template_variables:
+          builder_level: episode
+          rating1: audience
+          rating1_image: imdb
+
+  Movies:
+    reapply_overlays: false
+    schedule_overlays: daily
+    overlay_files:
+      - default: resolution
+      - default: video_format
+      - default: ratings
+        template_variables:
+          rating1: critic
+          rating1_image: metacritic
+          rating2: audience
+          rating2_image: imdb
+
+settings:
+  run_order:
+    - overlays
+  cache: true
+  cache_expiration: 14
+  show_missing: false
+  show_missing_assets: false
+  save_report: false
+  item_refresh_delay: 0
+  verify_ssl: true
+  overlay_artwork_filetype: jpg
+  overlay_artwork_quality: 75
+
+plex:
+  url: env
+  token: env
+  timeout: 120
+  verify_ssl: false
+
+tmdb:
+  apikey: <<tmdbapikey>>
+  language: en
+  cache_expiration: 60

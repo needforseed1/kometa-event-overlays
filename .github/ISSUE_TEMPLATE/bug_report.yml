@@ -1,0 +1,50 @@
+name: Bug report
+description: Report a reproducible event, rating, or scoped-overlay problem
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Never include Plex, TMDb, Arr, Tautulli, or webhook tokens. Remove private URLs, usernames, hostnames, and media paths from logs.
+  - type: input
+    id: versions
+    attributes:
+      label: Component versions
+      description: Kometa, Plex, Sonarr/Radarr/Tautulli, Docker, and project version
+    validations:
+      required: true
+  - type: dropdown
+    id: source
+    attributes:
+      label: Event source
+      options:
+        - Sonarr
+        - Sonarr Anime
+        - Radarr
+        - Tautulli
+        - Six-hour inventory
+        - Overlay worker
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: counts
+    attributes:
+      label: Sanitized scope and reason counts
+      description: Include counts only where possible; do not include tokens or paths.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized relevant logs

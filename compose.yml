@@ -1,0 +1,108 @@
+name: kometa-event-overlays
+
+services:
+  kometa-imdb-sync:
+    build:
+      context: ./imdb-sync
+    image: local/kometa-event-sync:0.1.0-alpha.1
+    restart: unless-stopped
+    read_only: true
+    user: "1000:100"
+    networks:
+      - media
+    expose:
+      - "8788"
+    volumes:
+      - imdb-sync-data:/data:rw
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      PLEX_URL: ${PLEX_URL:?Set PLEX_URL in .env}
+      PLEX_TOKEN: ${PLEX_TOKEN:?Set PLEX_TOKEN in .env}
+      TMDB_API_KEY: ${TMDB_API_KEY:?Set TMDB_API_KEY in .env}
+      IMDB_SYNC_LIBRARIES: ${TV_LIBRARIES:?Set TV_LIBRARIES in .env}
+      IMDB_SYNC_MOVIE_LIBRARIES: ${MOVIE_LIBRARIES:-}
+      IMDB_SYNC_STATE_DIR: /data
+      IMDB_SYNC_DRY_RUN: ${IMDB_SYNC_DRY_RUN:-true}
+      IMDB_SYNC_POLL_HOURS: ${IMDB_SYNC_POLL_HOURS:-6}
+      IMDB_SYNC_NEW_DAYS: ${IMDB_SYNC_NEW_DAYS:-7}
+      IMDB_SYNC_RECENT_DAYS: ${IMDB_SYNC_RECENT_DAYS:-30}
+      IMDB_SYNC_MEDIUM_DAYS: ${IMDB_SYNC_MEDIUM_DAYS:-180}
+      IMDB_SYNC_RECENT_HOURS: ${IMDB_SYNC_RECENT_HOURS:-24}
+      IMDB_SYNC_WEEKLY_HOURS: ${IMDB_SYNC_WEEKLY_HOURS:-168}
+      IMDB_SYNC_MONTHLY_HOURS: ${IMDB_SYNC_MONTHLY_HOURS:-720}
+      IMDB_SYNC_MISSING_RETRY_HOURS: ${IMDB_SYNC_MISSING_RETRY_HOURS:-6}
+      IMDB_SYNC_HEALTH_MAX_AGE_HOURS: ${IMDB_SYNC_HEALTH_MAX_AGE_HOURS:-14}
+      IMDB_SYNC_WEBHOOK_HOST: 0.0.0.0
+      IMDB_SYNC_WEBHOOK_PORT: "8788"
+      IMDB_SYNC_WEBHOOK_TOKEN: ${IMDB_SYNC_WEBHOOK_TOKEN:-}
+      IMDB_SYNC_EVENT_DEBOUNCE_SECONDS: ${IMDB_SYNC_EVENT_DEBOUNCE_SECONDS:-90}
+      IMDB_SYNC_EVENT_RETRY_SECONDS: ${IMDB_SYNC_EVENT_RETRY_SECONDS:-120}
+      IMDB_SYNC_EVENT_MAX_ATTEMPTS: ${IMDB_SYNC_EVENT_MAX_ATTEMPTS:-10}
+      TZ: ${TZ:-UTC}
+    healthcheck:
+      test: ["CMD", "python", "/app/event_daemon.py", "--event-healthcheck"]
+      interval: 1m
+      timeout: 10s
+      retries: 2
+      start_period: 2m
+      start_interval: 5s
+
+  kometa-incremental:
+    build:
+      context: ./scoped-overlay
+    image: local/kometa-event-overlays:2.4.6-0.1.0-alpha.1
+    restart: unless-stopped
+    read_only: true
+    user: "1000:100"
+    entrypoint: ["python3", "-u", "/app/overlay-worker.py"]
+    command: ["--daemon"]
+    depends_on:
+      kometa-imdb-sync:
+        condition: service_healthy
+    networks:
+      - media
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    volumes:
+      - incremental-config:/config:rw
+      - ./config/config.yml:/config/config.yml:ro
+      - imdb-sync-data:/imdb-sync:ro
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      KOMETA_CONFIG: /config/config.yml
+      KOMETA_TESTS: "False"
+      KOMETA_NO_MISSING: "True"
+      KOMETA_READ_ONLY_CONFIG: "True"
+      KOMETA_PLEX_URL: ${PLEX_URL:?Set PLEX_URL in .env}
+      KOMETA_PLEX_TOKEN: ${PLEX_TOKEN:?Set PLEX_TOKEN in .env}
+      KOMETA_TMDBAPIKEY: ${TMDB_API_KEY:?Set TMDB_API_KEY in .env}
+      KOMETA_OVERLAY_SCOPE_FILE: /imdb-sync/overlay-scope.json
+      KOMETA_OVERLAY_SCOPE_MAX_AGE_HOURS: ${IMDB_SYNC_HEALTH_MAX_AGE_HOURS:-14}
+      KOMETA_OVERLAY_WORKER_STATE_DIR: /config
+      KOMETA_OVERLAY_WORKER_POLL_SECONDS: ${OVERLAY_WORKER_POLL_SECONDS:-2}
+      KOMETA_OVERLAY_WORKER_RETRY_SECONDS: ${OVERLAY_WORKER_RETRY_SECONDS:-300}
+      TZ: ${TZ:-UTC}
+    healthcheck:
+      test: ["CMD", "python3", "/app/overlay-worker.py", "--healthcheck"]
+      interval: 1m
+      timeout: 10s
+      retries: 2
+      start_period: 2m
+      start_interval: 5s
+
+networks:
+  media:
+    external: true
+    name: ${MEDIA_NETWORK:?Set MEDIA_NETWORK in .env}
+
+volumes:
+  imdb-sync-data:
+  incremental-config:
